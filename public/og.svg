@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="0%" r="100%">
+      <stop offset="0" stop-color="#10b981" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#020617" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" x2="1">
+      <stop stop-color="#34d399"/>
+      <stop offset="1" stop-color="#6ee7b7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#020617"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <rect x="76" y="74" width="64" height="64" rx="16" fill="#10b981"/>
+  <path d="M92 94h32m-16 0v34" fill="none" stroke="#022c22" stroke-linecap="round" stroke-width="7"/>
+  <text x="164" y="121" fill="#f8fafc" font-family="Manrope,Arial,sans-serif" font-size="40" font-weight="750">TypeShyt</text>
+  <text x="76" y="285" fill="#f8fafc" font-family="Manrope,Arial,sans-serif" font-size="68" font-weight="750">Find your typing</text>
+  <text x="76" y="370" fill="url(#accent)" font-family="Manrope,Arial,sans-serif" font-size="68" font-weight="750">rhythm.</text>
+  <text x="80" y="445" fill="#cbd5e1" font-family="Manrope,Arial,sans-serif" font-size="28">Speed, accuracy, and focused practice.</text>
+  <rect x="76" y="510" width="1048" height="1" fill="#334155"/>
+  <text x="80" y="562" fill="#94a3b8" font-family="JetBrains Mono,Consolas,monospace" font-size="21">TIMED · WORDS · CODE · WEAK KEYS</text>
+</svg>
