@@ -7,6 +7,7 @@ interface Props {
   result: TestResult
   best: number
   storageAvailable: boolean
+  onShare: (result: TestResult, trigger: HTMLButtonElement) => void
   onRestart: () => void
 }
 
@@ -17,7 +18,7 @@ function modeLabel(result: TestResult): string {
   return `Words · ${result.wordCount}`
 }
 
-export default function Results({ result, best, storageAvailable, onRestart }: Props) {
+export default function Results({ result, best, storageAvailable, onShare, onRestart }: Props) {
   const average = averageWpm(result.wpmSamples)
   const peak = peakWpm(result.wpmSamples)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -73,13 +74,22 @@ export default function Results({ result, best, storageAvailable, onRestart }: P
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={onRestart}
-        className="mt-8 rounded-lg bg-brand-500 px-5 py-3 font-bold text-slate-950 transition-colors hover:bg-brand-400"
-      >
-        Try again
-      </button>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={(event) => onShare(result, event.currentTarget)}
+          className="rounded-lg border border-brand-500 px-5 py-3 font-semibold text-brand-200 transition-colors hover:bg-brand-950"
+        >
+          Share result
+        </button>
+        <button
+          type="button"
+          onClick={onRestart}
+          className="rounded-lg bg-brand-500 px-5 py-3 font-bold text-slate-950 transition-colors hover:bg-brand-400"
+        >
+          Try again
+        </button>
+      </div>
     </section>
   )
 }

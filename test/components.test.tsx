@@ -135,7 +135,7 @@ describe('test controls and results', () => {
       wpmSamples: [],
     })
 
-    render(<Results result={result} best={55} storageAvailable onRestart={vi.fn()} />)
+    render(<Results result={result} best={55} storageAvailable onShare={vi.fn()} onRestart={vi.fn()} />)
     expect(screen.getByText('52')).toBeInTheDocument()
     expect(screen.getByText('Net WPM')).toBeInTheDocument()
     expect(screen.getByText('61')).toBeInTheDocument()
@@ -181,7 +181,7 @@ describe('statistics charts and weak-key panel', () => {
 
 describe('HistoryPanel', () => {
   it('shows a clear empty state', () => {
-    render(<HistoryPanel history={[]} legacyBests={{}} onClear={vi.fn()} />)
+    render(<HistoryPanel history={[]} legacyBests={{}} onShare={vi.fn()} onClear={vi.fn()} />)
     expect(screen.getByRole('heading', { name: 'Test history' })).toBeInTheDocument()
     expect(screen.getByText(/no completed tests yet/i)).toBeInTheDocument()
   })
@@ -190,7 +190,7 @@ describe('HistoryPanel', () => {
     const user = userEvent.setup()
     const onClear = vi.fn()
     const history: TestResult[] = [makeResult({ id: 'first', wpm: 42 })]
-    render(<HistoryPanel history={history} legacyBests={{}} onClear={onClear} />)
+    render(<HistoryPanel history={history} legacyBests={{}} onShare={vi.fn()} onClear={onClear} />)
     const row = screen.getByRole('row', { name: /time · 30s/i })
     expect(within(row).getByText('42')).toBeInTheDocument()
 
@@ -199,5 +199,15 @@ describe('HistoryPanel', () => {
     expect(onClear).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
     expect(onClear).toHaveBeenCalledOnce()
+  })
+
+  it('provides an accessible secondary share action for each stored result', async () => {
+    const user = userEvent.setup()
+    const onShare = vi.fn()
+    const result = makeResult({ id: 'shareable', completedAt: '2025-02-03T12:00:00.000Z', wpmSamples: [1, 2, 3] })
+    render(<HistoryPanel history={[result]} legacyBests={{}} onShare={onShare} onClear={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: /^Share result from/ }))
+    expect(onShare).toHaveBeenCalledWith(result, expect.any(HTMLButtonElement))
+    expect(result.wpmSamples).toEqual([1, 2, 3])
   })
 })

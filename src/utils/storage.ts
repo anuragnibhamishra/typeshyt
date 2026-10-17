@@ -60,6 +60,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
 }
 
 const DATA_KEY = 'typeshyt:state:v2'
+const IOS_INSTALL_HINT_KEY = 'typeshyt:pwa:ios-install-hint-dismissed'
 const OLD_BEST_DURATIONS = [15, 30, 60, 120]
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -276,6 +277,23 @@ export function clearHistory(): boolean {
 
 export function resetWeakKeys(): boolean {
   return saveWeakKeys({})
+}
+
+export function isIosInstallHintDismissed(): boolean {
+  try {
+    return localStorage.getItem(IOS_INSTALL_HINT_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function dismissIosInstallHint(): boolean {
+  try {
+    localStorage.setItem(IOS_INSTALL_HINT_KEY, 'true')
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function derivePersonalBest(history: TestResult[], preferences: Preferences): number {

@@ -18,7 +18,11 @@ These media files are TODOs until recorded and added. See [docs/DEMO_SCRIPT.md](
 - Live Net WPM, Raw WPM, keystroke accuracy, and elapsed/countdown time.
 - Results with a per-second WPM chart and history-derived personal bests.
 - Local test history, settings, and aggregate weak-key statistics.
+- Installable, offline-capable PWA with self-hosted fonts and prompt-based updates.
+- Share result cards as landscape or portrait PNGs by download, native file share, or clipboard when the browser supports them.
 - Keyboard shortcuts, paste/cursor-movement blocking, and reduced-motion support.
+
+The share card contains only the aggregate result (WPM, Raw WPM, accuracy, mode, date, test settings, and saved WPM samples). It contains no personal data, per-key statistics, or typed text.
 
 ## Tech stack
 
@@ -69,6 +73,16 @@ docs/            product and engineering documentation
 ```
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for data flow and state ownership.
+
+## PWA & sharing
+
+Install TypeShyt from the browser's install control when offered. On iOS Safari, use **Share → Add to Home Screen**. After the first production visit, the app shell, fonts, icons, and history functionality are available offline; saved results remain in that browser's local storage. A new version waits for the user to choose **Reload**, and that action is disabled while a typing test is running.
+
+Result sharing offers a PNG download everywhere the browser provides blob downloads; native file sharing and image clipboard actions appear only when their APIs report support. Browser/device behavior has not been verified here: **TODO(you): verify install, offline use, download, native sharing, and clipboard on target devices.**
+
+See [docs/PWA.md](docs/PWA.md) for the caching and update flows, local preview/DevTools steps, and manual device checklist.
+
+The self-hosted Manrope and JetBrains Mono font files are licensed under the SIL Open Font License 1.1; the license texts are included alongside the font assets in `src/assets/fonts/`.
 
 ## Testing, quality, accessibility, and performance
 

@@ -8,6 +8,7 @@ type Filter = Mode | 'all'
 interface Props {
   history: TestResult[]
   legacyBests: Record<string, number>
+  onShare: (result: TestResult, trigger: HTMLButtonElement) => void
   onClear: () => void
 }
 
@@ -26,7 +27,7 @@ function matchesFilter(result: TestResult, filter: Filter): boolean {
   return result.mode === 'words' && result.variant === undefined
 }
 
-export default function HistoryPanel({ history, legacyBests, onClear }: Props) {
+export default function HistoryPanel({ history, legacyBests, onShare, onClear }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const [confirming, setConfirming] = useState(false)
   const visible = useMemo(() => history.filter((result) => matchesFilter(result, filter)), [history, filter])
@@ -129,7 +130,7 @@ export default function HistoryPanel({ history, legacyBests, onClear }: Props) {
             <p className="rounded-xl bg-slate-900/70 p-6 text-center text-slate-400">No results for this mode yet.</p>
           ) : (
             <div className="overflow-x-auto rounded-xl ring-1 ring-slate-800">
-              <table className="w-full min-w-[560px] border-collapse text-left text-sm">
+              <table className="w-full min-w-[640px] border-collapse text-left text-sm">
                 <thead className="bg-slate-900 text-slate-400">
                   <tr>
                     <th scope="col" className="px-4 py-3 font-medium">Date</th>
@@ -137,6 +138,7 @@ export default function HistoryPanel({ history, legacyBests, onClear }: Props) {
                     <th scope="col" className="px-4 py-3 font-medium">Net WPM</th>
                     <th scope="col" className="px-4 py-3 font-medium">Raw WPM</th>
                     <th scope="col" className="px-4 py-3 font-medium">Accuracy</th>
+                    <th scope="col" className="px-4 py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800 bg-slate-950/50">
@@ -149,6 +151,16 @@ export default function HistoryPanel({ history, legacyBests, onClear }: Props) {
                       <td className="px-4 py-3 font-mono text-brand-300">{result.wpm}</td>
                       <td className="px-4 py-3 font-mono text-slate-200">{result.rawWpm}</td>
                       <td className="px-4 py-3 font-mono text-slate-200">{result.accuracy}%</td>
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={(event) => onShare(result, event.currentTarget)}
+                          aria-label={`Share result from ${new Date(result.completedAt).toLocaleDateString()}`}
+                          className="rounded-md border border-slate-600 px-3 py-1.5 text-xs text-brand-200 hover:bg-slate-800"
+                        >
+                          Share
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

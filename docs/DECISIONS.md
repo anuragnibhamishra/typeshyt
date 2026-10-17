@@ -79,3 +79,23 @@
 **Alternatives considered:** Accounts plus a server-side history, or a leaderboard service.
 
 **Consequences:** Users retain control of local data, and hosting stays static/simple; progress does not synchronize between devices and cannot be recovered after local browser data is removed.
+
+## Canvas instead of a DOM-to-image library
+
+**Context:** Result cards need two exact export sizes, predictable typography, and only the aggregate data already present in a saved result.
+
+**Decision:** Draw the landscape and portrait cards with the Canvas 2D API. Load the locally bundled fonts before drawing, export PNG blobs, and keep download/share/clipboard browser APIs in separate wrappers.
+
+**Alternatives considered:** Capture the results DOM with html2canvas/html-to-image, add a server-rendered card, or use an SVG image renderer.
+
+**Consequences:** The card remains independent of the results screen layout and avoids a runtime dependency, but layout and text fitting are maintained explicitly and Canvas rendering needs real-browser visual checks. jsdom cannot validate pixels; tests mock the canvas and assert the model passed into the drawing function.
+
+## Prompt-based service worker updates
+
+**Context:** A new worker should not discard an in-progress typing test or interrupt someone reading a result.
+
+**Decision:** Use the PWA plugin's Workbox `generateSW` worker and wait for explicit user action before activating updates. The toast disables Reload while a test is running; Dismiss leaves the installed worker available for a later visit or reload.
+
+**Alternatives considered:** Automatically call `skipWaiting` and reload, or keep the user on an old worker until the browser's default lifecycle eventually activates the update.
+
+**Consequences:** Updates are controlled and do not reload a running test automatically, but users must choose Reload to receive a waiting version promptly. The app remains a static, origin-scoped PWA with browser-managed cache/storage eviction.
