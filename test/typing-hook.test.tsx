@@ -8,6 +8,7 @@ const timedConfig: Preferences & { weakKeys: WeakKeyStats } = {
   mode: 'time',
   duration: 2,
   wordCount: 10,
+  customText: '',
   settings: { punctuation: false, numbers: false },
   weakKeys: emptyWeakKeys,
 }
@@ -60,6 +61,50 @@ describe('useTypingTest timer and input lifecycle', () => {
     act(() => result.current.onType('ab'))
     expect(result.current.totalKeystrokes).toBe(1)
     expect(result.current.wpmSamples).toHaveLength(1)
+  })
+
+  it('cycles code prompts until its selected timer expires', () => {
+    const codeConfig: Preferences & { weakKeys: WeakKeyStats } = {
+      ...timedConfig,
+      mode: 'code',
+      duration: 2,
+    }
+    const { result } = renderHook(() => useTypingTest(codeConfig, { now: clock, random }))
+    const firstPrompt = result.current.text
+
+    act(() => result.current.onType(firstPrompt))
+    expect(result.current.status).toBe('running')
+    expect(result.current.text).not.toBe(firstPrompt)
+    expect(result.current.typed).toBe('')
+    expect(result.current.totalKeystrokes).toBe(firstPrompt.length)
+    expect(result.current.statsText).toContain(firstPrompt)
+    expect(result.current.statsTyped).toBe(firstPrompt)
+
+    now = 2_000
+    act(() => vi.advanceTimersByTime(100))
+    expect(result.current.status).toBe('finished')
+    expect(result.current.elapsed).toBe(2)
+    expect(result.current.wpmSamples).toHaveLength(2)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('cycles custom timed text and accumulates the completed prompt for stats', () => {
+    const customConfig = { ...timedConfig, duration: 1, customText: 'abc' }
+    const { result } = renderHook(() => useTypingTest(customConfig, { now: clock, random }))
+
+    expect(result.current.text).toBe('abc')
+    act(() => result.current.onType('abc'))
+    expect(result.current.status).toBe('running')
+    expect(result.current.text).toBe('abc')
+    expect(result.current.typed).toBe('')
+    expect(result.current.totalKeystrokes).toBe(3)
+    expect(result.current.statsText).toBe('abcabc')
+    expect(result.current.statsTyped).toBe('abc')
+
+    now = 1_000
+    act(() => vi.advanceTimersByTime(100))
+    expect(result.current.status).toBe('finished')
+    expect(result.current.elapsed).toBe(1)
   })
 
   it('records no more than one sample per second', () => {

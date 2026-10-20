@@ -2,6 +2,8 @@ import type { Mode } from './words'
 
 export const STORAGE_SCHEMA_VERSION = 2
 export const HISTORY_LIMIT = 200
+export const MAX_CUSTOM_TEXT_LENGTH = 10_000
+export const MAX_TEST_DURATION = 3_600
 
 export interface TestSettings {
   punctuation: boolean
@@ -12,6 +14,7 @@ export interface Preferences {
   mode: Mode
   duration: number
   wordCount: 10 | 25 | 50
+  customText: string
   settings: TestSettings
 }
 
@@ -56,6 +59,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   mode: 'time',
   duration: 30,
   wordCount: 25,
+  customText: '',
   settings: { punctuation: false, numbers: false },
 }
 
@@ -127,7 +131,10 @@ function isResult(value: unknown): value is TestResult {
     return false
   }
   if (value.mode === 'time') {
-    return [15, 30, 60, 120].includes(Number(value.duration)) && value.variant === undefined
+    return Number.isInteger(value.duration) &&
+      Number(value.duration) >= 1 &&
+      Number(value.duration) <= MAX_TEST_DURATION &&
+      value.variant === undefined
   }
   if (value.mode !== 'words' || !Number.isInteger(value.wordCount) || Number(value.wordCount) < 1) return false
   if (value.variant === 'code') return typeof value.language === 'string' && value.language.length > 0
@@ -160,12 +167,20 @@ function validatePreferences(value: unknown): Preferences {
   if (!isRecord(value)) return DEFAULT_PREFERENCES
   const mode: Mode =
     value.mode === 'words' || value.mode === 'code' || value.mode === 'weak-keys' ? value.mode : 'time'
-  const duration = [15, 30, 60, 120].includes(Number(value.duration)) ? Number(value.duration) : 30
+  const duration = Number.isInteger(Number(value.duration)) &&
+      Number(value.duration) >= 1 &&
+      Number(value.duration) <= MAX_TEST_DURATION
+    ? Number(value.duration)
+    : DEFAULT_PREFERENCES.duration
   const wordCount = [10, 25, 50].includes(Number(value.wordCount))
     ? (Number(value.wordCount) as Preferences['wordCount'])
     : 25
+  const customText =
+    typeof value.customText === 'string' && value.customText.length <= MAX_CUSTOM_TEXT_LENGTH
+      ? value.customText
+      : ''
   const settings = isSettings(value.settings) ? value.settings : DEFAULT_PREFERENCES.settings
-  return { mode, duration, wordCount, settings }
+  return { mode, duration, wordCount, customText, settings }
 }
 
 function emptyData(): AppData {

@@ -6,6 +6,7 @@ export const preferences: Preferences = {
   mode: 'time',
   duration: 30,
   wordCount: 10,
+  customText: '',
   settings: { punctuation: false, numbers: false },
 }
 

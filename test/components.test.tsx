@@ -2,6 +2,7 @@ import { createEvent, fireEvent, render, screen, waitFor, within } from '@testin
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import HistoryPanel from '../src/components/HistoryPanel'
+import CustomTextPicker from '../src/components/CustomTextPicker'
 import ModePicker from '../src/components/ModePicker'
 import Results from '../src/components/Results'
 import SettingsToggles from '../src/components/SettingsToggles'
@@ -100,15 +101,62 @@ describe('test controls and results', () => {
       onWordCountChange,
     }
     const { rerender } = render(<ModePicker {...props} />)
+    expect(screen.queryByRole('spinbutton', { name: 'Custom duration in seconds' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '15s' }))
     expect(onDurationChange).toHaveBeenCalledWith(15)
+    await user.click(screen.getByRole('button', { name: 'Custom' }))
+    const durationInput = screen.getByRole('spinbutton', { name: 'Custom duration in seconds' })
+    expect(durationInput).toHaveFocus()
+    await user.clear(durationInput)
+    await user.type(durationInput, '75')
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    expect(onDurationChange).toHaveBeenLastCalledWith(75)
+    await user.clear(durationInput)
+    await user.type(durationInput, '0')
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled()
+    await user.clear(durationInput)
+    await user.type(durationInput, '90')
+    await user.keyboard('{Enter}')
+    expect(onDurationChange).toHaveBeenLastCalledWith(90)
     await user.click(screen.getByRole('button', { name: 'Words' }))
     expect(onModeChange).toHaveBeenCalledWith('words')
+    rerender(<ModePicker {...props} mode="words" />)
+    expect(screen.queryByRole('group', { name: 'Test duration' })).not.toBeInTheDocument()
     rerender(<ModePicker {...props} disabled />)
     expect(screen.getByRole('button', { name: 'Time' })).toBeDisabled()
     expect(screen.getByRole('button', { name: '30s' })).toBeDisabled()
     rerender(<ModePicker {...props} mode="code" />)
-    expect(screen.getByText('Type the complete snippet')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Test duration' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '30s' })).toBeInTheDocument()
+  })
+
+  it('applies and clears custom typing text explicitly', async () => {
+    const user = userEvent.setup()
+    const onApply = vi.fn()
+    render(<CustomTextPicker value="" disabled={false} onApply={onApply} />)
+    expect(screen.queryByRole('textbox', { name: 'Custom typing text' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Custom' }))
+    const text = screen.getByRole('textbox', { name: 'Custom typing text' })
+    expect(text).toHaveFocus()
+    await user.type(text, 'My own passage.')
+    await user.click(screen.getByRole('button', { name: 'Use custom text' }))
+    expect(onApply).toHaveBeenCalledWith('My own passage.')
+    await user.click(screen.getByRole('button', { name: 'Generated' }))
+    expect(screen.queryByRole('textbox', { name: 'Custom typing text' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Custom' }))
+    expect(screen.getByRole('textbox', { name: 'Custom typing text' })).toHaveValue('My own passage.')
+  })
+
+  it('preserves and edits an existing custom text draft', async () => {
+    const user = userEvent.setup()
+    const onApply = vi.fn()
+    render(<CustomTextPicker value="Saved custom text." disabled={false} onApply={onApply} />)
+    const text = screen.getByRole('textbox', { name: 'Custom typing text' })
+    await user.clear(text)
+    await user.type(text, 'Edited custom text.')
+    expect(text).toHaveValue('Edited custom text.')
+    await user.click(screen.getByRole('button', { name: 'Use custom text' }))
+    expect(onApply).toHaveBeenCalledWith('Edited custom text.')
   })
 
   it('updates labeled text settings', async () => {

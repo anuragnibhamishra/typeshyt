@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import CustomTextPicker from './components/CustomTextPicker'
 import Header from './components/Header'
 import HistoryPanel from './components/HistoryPanel'
 import ModePicker from './components/ModePicker'
@@ -52,6 +53,8 @@ export default function App() {
   )
   const {
     text,
+    statsText,
+    statsTyped,
     language,
     usedWeakKeyFallback,
     typed,
@@ -67,8 +70,8 @@ export default function App() {
     weakKeyStats,
   } = useTypingTest(testConfig)
   const stats = useMemo(
-    () => calcStats(text, typed, elapsed, totalKeystrokes, correctKeystrokes),
-    [text, typed, elapsed, totalKeystrokes, correctKeystrokes],
+    () => calcStats(statsText, statsTyped, elapsed, totalKeystrokes, correctKeystrokes),
+    [statsText, statsTyped, elapsed, totalKeystrokes, correctKeystrokes],
   )
   const personalBest = useMemo(() => derivePersonalBest(data.history, preferences), [data.history, preferences])
   const showIosInstallHint = installPrompt.isIos && !installPrompt.isInstalled && !iosHintDismissed
@@ -88,7 +91,7 @@ export default function App() {
     submittedVersion.current = focusVersion
     const result = createTestResult({
       preferences,
-      text,
+      text: statsText,
       language,
       elapsedSec: elapsed,
       stats,
@@ -113,7 +116,7 @@ export default function App() {
         weakKeys: nextWeakKeys,
       }
     })
-  }, [status, focusVersion, preferences, text, language, elapsed, stats, wpmSamples, weakKeyStats])
+  }, [status, focusVersion, preferences, statsText, language, elapsed, stats, wpmSamples, weakKeyStats])
 
   const updatePreferences = useCallback((update: (current: Preferences) => Preferences) => {
     const preferencesNext = update(preferences)
@@ -168,6 +171,10 @@ export default function App() {
     updatePreferences((current) => ({ ...current, duration }))
   }, [updatePreferences])
 
+  const changeCustomText = useCallback((customText: string) => {
+    updatePreferences((current) => ({ ...current, customText }))
+  }, [updatePreferences])
+
   const pickerDisabled = status === 'running'
 
   return (
@@ -220,9 +227,8 @@ export default function App() {
         ) : (
           <>
             {status !== 'finished' && (
-              <section className="flex flex-col gap-4 rounded-xl bg-slate-900/40 p-4 ring-1 ring-slate-800 sm:p-5">
-                <div className="flex flex-col gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Mode</p>
+              <section aria-label="Typing test settings" className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 sm:p-5">
+                <div className="flex flex-col gap-4">
                   <ModePicker
                     mode={preferences.mode}
                     wordCount={preferences.wordCount}
@@ -232,20 +238,32 @@ export default function App() {
                     onDurationChange={changeDuration}
                     onWordCountChange={changeWordCount}
                   />
+                  {preferences.mode === 'time' && (
+                    <div className="border-t border-slate-800 pt-3">
+                      <CustomTextPicker
+                        value={preferences.customText}
+                        disabled={pickerDisabled}
+                        onApply={changeCustomText}
+                      />
+                    </div>
+                  )}
+                  {preferences.mode !== 'code' && (
+                    <div className="flex flex-col gap-2 border-t border-slate-800 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Options</p>
+                        <SettingsToggles
+                          settings={preferences.settings}
+                          disabled={pickerDisabled}
+                          onChange={handleSettingsChange}
+                        />
+                      </div>
+                      <span className="text-xs text-slate-400">
+                        {preferences.settings.punctuation ? 'Punctuation on' : 'Punctuation off'} ·{' '}
+                        {preferences.settings.numbers ? 'Numbers on' : 'Numbers off'}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                {preferences.mode !== 'code' && (
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <SettingsToggles
-                      settings={preferences.settings}
-                      disabled={pickerDisabled}
-                      onChange={handleSettingsChange}
-                    />
-                    <span className="text-xs text-slate-400">
-                      {preferences.settings.punctuation ? 'Punctuation on' : 'Punctuation off'} ·{' '}
-                      {preferences.settings.numbers ? 'Numbers on' : 'Numbers off'}
-                    </span>
-                  </div>
-                )}
               </section>
             )}
 
@@ -265,11 +283,11 @@ export default function App() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-sm text-slate-400">
                     {preferences.mode === 'time'
-                      ? `Timed test · ${preferences.duration} seconds`
+                      ? `${preferences.customText.trim() ? 'Custom text test' : 'Timed test'} · ${preferences.duration} seconds`
                       : preferences.mode === 'words'
                         ? `Words test · ${preferences.wordCount} words`
                         : preferences.mode === 'code'
-                          ? `Code test · ${language ?? 'snippet'}`
+                          ? `Code test · ${preferences.duration} seconds · ${language ?? 'snippet'}`
                           : `Weak-key practice · ${preferences.wordCount} words`}
                     <span className="ml-2 text-slate-400">
                       {preferences.settings.punctuation ? 'punctuation on' : 'punctuation off'} ·{' '}
@@ -281,8 +299,8 @@ export default function App() {
                   )}
                 </div>
                 <StatsBar
-                  timeValue={preferences.mode === 'time' ? Math.ceil(Math.max(0, preferences.duration - elapsed)) : elapsed.toFixed(1)}
-                  timeLabel={preferences.mode === 'time' ? 'seconds left' : 'elapsed seconds'}
+                  timeValue={preferences.mode === 'time' || preferences.mode === 'code' ? Math.ceil(Math.max(0, preferences.duration - elapsed)) : elapsed.toFixed(1)}
+                  timeLabel={preferences.mode === 'time' || preferences.mode === 'code' ? 'seconds left' : 'elapsed seconds'}
                   netWpm={stats.netWpm}
                   rawWpm={stats.rawWpm}
                   accuracy={stats.keystrokeAccuracy}
@@ -307,12 +325,12 @@ export default function App() {
                   <p>
                     {status === 'idle'
                       ? 'Start typing to begin.'
-                      : preferences.mode === 'time'
+                      : preferences.mode === 'time' || preferences.mode === 'code'
                         ? 'Keep going until the timer ends.'
                         : 'Type the complete prompt to finish.'}
                     {preferences.mode === 'code' && (
                       <span className="mt-1 block text-xs text-slate-400">
-                        Type indentation as shown; Enter inserts a newline. Tab restarts.
+                        A new snippet appears after each one. Type indentation as shown; Enter inserts a newline. Tab restarts.
                       </span>
                     )}
                   </p>

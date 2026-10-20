@@ -146,10 +146,21 @@ function hasWeakWords(weakKeys: WeakKeyStats): boolean {
   return WORDS.filter((word) => keys.some((key) => word.includes(key))).length >= 5
 }
 
-export function generateCodeSnippet(random: () => number = Math.random): { text: string; language: string } {
-  const snippet = CODE_SNIPPETS[Math.floor(randomValue(random) * CODE_SNIPPETS.length)]
+export function generateCodeSnippet(
+  random: () => number = Math.random,
+  previousText?: string,
+): { text: string; language: string } {
+  let index = Math.floor(randomValue(random) * CODE_SNIPPETS.length)
+  let snippet = CODE_SNIPPETS[index]
   if (snippet === undefined) throw new RangeError('Generated code snippet index is out of range')
-  return { ...snippet, text: snippet.text.replace(/\\n/g, '\n') }
+  let text = snippet.text.replace(/\\n/g, '\n')
+  if (text === previousText) {
+    index = (index + 1) % CODE_SNIPPETS.length
+    snippet = CODE_SNIPPETS[index]
+    if (snippet === undefined) throw new RangeError('Generated code snippet index is out of range')
+    text = snippet.text.replace(/\\n/g, '\n')
+  }
+  return { language: snippet.language, text }
 }
 
 export function countWords(text: string): number {

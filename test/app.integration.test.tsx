@@ -66,4 +66,38 @@ describe('App end-to-end test flow', () => {
     expect(data.history).toHaveLength(1)
     await waitFor(() => expect(screen.getByRole('heading', { name: /test complete/i })).toBeInTheDocument())
   }, 20_000)
+
+  it('reveals custom controls on demand and hides controls irrelevant to the selected mode', async () => {
+    const user = userEvent.setup()
+    render(<StrictMode><App /></StrictMode>)
+
+    const durationGroup = screen.getByRole('group', { name: 'Test duration' })
+    expect(screen.queryByRole('spinbutton', { name: 'Custom duration in seconds' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Custom typing text' })).not.toBeInTheDocument()
+
+    await user.click(within(durationGroup).getByRole('button', { name: 'Custom' }))
+    const durationInput = screen.getByRole('spinbutton', { name: 'Custom duration in seconds' })
+    await user.clear(durationInput)
+    await user.type(durationInput, '45')
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    expect(screen.getByText(/Timed test · 45 seconds/)).toBeInTheDocument()
+
+    await user.click(within(screen.getByRole('group', { name: 'Text source' })).getByRole('button', { name: 'Custom' }))
+    const customTextInput = screen.getByRole('textbox', { name: 'Custom typing text' })
+    expect(customTextInput).toHaveFocus()
+    await user.type(customTextInput, 'Practice this custom passage.')
+    await user.click(screen.getByRole('button', { name: 'Use custom text' }))
+    expect(screen.getByText(/Custom text test · 45 seconds/)).toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({
+      preferences: { duration: 45, customText: 'Practice this custom passage.' },
+    })
+
+    await user.click(within(screen.getByRole('group', { name: 'Text source' })).getByRole('button', { name: 'Generated' }))
+    expect(screen.queryByRole('textbox', { name: 'Custom typing text' })).not.toBeInTheDocument()
+    expect(screen.getByText(/Timed test · 45 seconds/)).toBeInTheDocument()
+    await user.click(within(screen.getByRole('group', { name: 'Test mode' })).getByRole('button', { name: 'Words' }))
+    expect(screen.queryByRole('group', { name: 'Test duration' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Text source' })).not.toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Word count' })).toBeInTheDocument()
+  }, 20_000)
 })

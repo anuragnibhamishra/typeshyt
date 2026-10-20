@@ -22,8 +22,11 @@ interface TestPrompt {
 
 interface SessionState {
   prompt: TestPrompt
+  completedText: string
+  completedTyped: string
   mode: Preferences['mode']
   duration: number
+  accumulateText: boolean
   typed: string
   status: Status
   elapsed: number
@@ -42,9 +45,12 @@ export interface TypingTestDependencies {
 const defaultNow = () => performance.now()
 const defaultRandom = () => Math.random()
 
-function createPrompt(config: Config, random: () => number): TestPrompt {
+function createPrompt(config: Config, random: () => number, previousText?: string): TestPrompt {
+  if (config.mode === 'time' && config.customText.trim()) {
+    return { text: config.customText, language: null, usedWeakKeyFallback: false }
+  }
   if (config.mode === 'code') {
-    const snippet = generateCodeSnippet(random)
+    const snippet = generateCodeSnippet(random, previousText)
     return { text: snippet.text, language: snippet.language, usedWeakKeyFallback: false }
   }
   if (config.mode === 'weak-keys') {
@@ -76,8 +82,11 @@ export function useTypingTest(config: Config, dependencies: TypingTestDependenci
   }
   const initialState: SessionState = {
     prompt: initialPromptRef.current,
+    completedText: '',
+    completedTyped: '',
     mode: config.mode,
     duration: config.duration,
+    accumulateText: config.mode === 'code' || Boolean(config.customText.trim()),
     typed: '',
     status: 'idle',
     elapsed: 0,
@@ -108,9 +117,15 @@ export function useTypingTest(config: Config, dependencies: TypingTestDependenci
     const nextSecond = Math.floor(second)
     while (lastSampleSecondRef.current < nextSecond) {
       const sampleSecond = lastSampleSecondRef.current + 1
+      const statsText = session.accumulateText
+        ? session.completedText + session.prompt.text
+        : session.prompt.text
+      const statsTyped = session.accumulateText
+        ? session.completedTyped + session.typed
+        : session.typed
       const stats = calcStats(
-        session.prompt.text,
-        session.typed,
+        statsText,
+        statsTyped,
         sampleSecond,
         session.totalKeystrokes,
         session.correctKeystrokes,
@@ -127,7 +142,9 @@ export function useTypingTest(config: Config, dependencies: TypingTestDependenci
       clearTimer()
       const finalElapsed = Math.max(
         0,
-        session.mode === 'time' ? Math.min(session.duration, elapsedSec) : elapsedSec,
+        session.mode === 'time' || session.mode === 'code'
+          ? Math.min(session.duration, elapsedSec)
+          : elapsedSec,
       )
       appendSamplesUntil(session, finalElapsed)
       sessionRef.current = { ...session, elapsed: finalElapsed, status: 'finished' }
@@ -145,11 +162,14 @@ export function useTypingTest(config: Config, dependencies: TypingTestDependenci
       const activeSession = sessionRef.current
       if (activeSession.status !== 'running' || activeSession.startedAt === null) return
       const seconds = Math.max(0, (nowRef.current() - activeSession.startedAt) / 1000)
-      if (activeSession.mode === 'time' && shouldFinishTimedTest(seconds, activeSession.duration)) {
+      if (
+        (activeSession.mode === 'time' || activeSession.mode === 'code') &&
+        shouldFinishTimedTest(seconds, activeSession.duration)
+      ) {
         finish(activeSession.duration)
         return
       }
-      const elapsed = activeSession.mode === 'time'
+      const elapsed = activeSession.mode === 'time' || activeSession.mode === 'code'
         ? Math.min(activeSession.duration, seconds)
         : seconds
       const nextSession = { ...activeSession, elapsed }
@@ -166,8 +186,11 @@ export function useTypingTest(config: Config, dependencies: TypingTestDependenci
       const currentConfig = configRef.current
       sessionRef.current = {
         prompt,
+        completedText: '',
+        completedTyped: '',
         mode: currentConfig.mode,
         duration: currentConfig.duration,
+        accumulateText: currentConfig.mode === 'code' || Boolean(currentConfig.customText.trim()),
         typed: '',
         status: 'idle',
         elapsed: 0,
@@ -197,6 +220,7 @@ export function useTypingTest(config: Config, dependencies: TypingTestDependenci
     config.mode,
     config.duration,
     config.wordCount,
+    config.customText,
     config.settings.punctuation,
     config.settings.numbers,
     newText,
@@ -209,7 +233,7 @@ export function useTypingTest(config: Config, dependencies: TypingTestDependenci
       if (session.status === 'finished') return
       let now = nowRef.current()
       if (
-        session.mode === 'time' &&
+        (session.mode === 'time' || session.mode === 'code') &&
         session.status === 'running' &&
         session.startedAt !== null &&
         shouldFinishTimedTest((now - session.startedAt) / 1000, session.duration)
@@ -252,9 +276,30 @@ export function useTypingTest(config: Config, dependencies: TypingTestDependenci
 
       session = { ...session, typed: next }
       sessionRef.current = session
-      render()
 
-      if (isAppend && session.mode !== 'time' && shouldFinishTextTest(next.length, maximum)) {
+      if (
+        isAppend &&
+        (session.mode === 'code' || (session.mode === 'time' && session.accumulateText)) &&
+        shouldFinishTextTest(next.length, maximum)
+      ) {
+        sessionRef.current = {
+          ...session,
+          prompt: createPrompt(configRef.current, randomRef.current, session.prompt.text),
+          completedText: session.completedText + session.prompt.text,
+          completedTyped: session.completedTyped + session.typed,
+          typed: '',
+        }
+        render()
+      } else {
+        render()
+      }
+
+      if (
+        isAppend &&
+        session.mode !== 'time' &&
+        session.mode !== 'code' &&
+        shouldFinishTextTest(next.length, maximum)
+      ) {
         const elapsedSec = session.startedAt === null ? 0 : (now - session.startedAt) / 1000
         finish(elapsedSec)
       }
@@ -265,6 +310,8 @@ export function useTypingTest(config: Config, dependencies: TypingTestDependenci
   const session = sessionRef.current
   return {
     text: session.prompt.text,
+    statsText: session.accumulateText ? session.completedText + session.prompt.text : session.prompt.text,
+    statsTyped: session.accumulateText ? session.completedTyped + session.typed : session.typed,
     language: session.prompt.language,
     usedWeakKeyFallback: session.prompt.usedWeakKeyFallback,
     typed: session.typed,

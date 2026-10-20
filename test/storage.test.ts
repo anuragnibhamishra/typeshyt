@@ -6,6 +6,7 @@ import {
   loadAppData,
   resetWeakKeys,
   saveResult,
+  savePreferences,
   STORAGE_SCHEMA_VERSION,
 } from '../src/utils/storage'
 import type { Preferences } from '../src/utils/storage'
@@ -15,6 +16,19 @@ const DATA_KEY = 'typeshyt:state:v2'
 
 beforeEach(() => {
   localStorage.clear()
+})
+
+it('persists custom prompt preferences and accepts custom timed result durations', () => {
+  const customPreferences: Preferences = {
+    ...preferences,
+    duration: 75,
+    customText: 'A passage to practice.',
+  }
+  const customResult = makeResult({ mode: 'time', duration: 75 }, customPreferences)
+  expect(savePreferences(customPreferences)).toBe(true)
+  expect(saveResult(customResult)).toBe(true)
+  expect(loadAppData().preferences).toEqual(customPreferences)
+  expect(loadAppData().history).toEqual([customResult])
 })
 
 afterEach(() => {
@@ -106,6 +120,7 @@ describe('history-derived personal best', () => {
       mode: 'words',
       duration: 30,
       wordCount: 10,
+      customText: '',
       settings: { punctuation: false, numbers: false },
     }
     const matchingWords = makeResult({ wpm: 71 }, wordsPreferences)

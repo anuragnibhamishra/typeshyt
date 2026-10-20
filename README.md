@@ -14,7 +14,7 @@ These media files are TODOs until recorded and added. See [docs/DEMO_SCRIPT.md](
 
 ## Features
 
-- Timed tests (15, 30, 60, or 120 seconds), 10/25/50-word tests, code snippets, and weak-key practice.
+- Timed tests with preset or custom durations, optional custom text, 10/25/50-word tests, timed code snippets that cycle as you finish them, and weak-key practice.
 - Live Net WPM, Raw WPM, keystroke accuracy, and elapsed/countdown time.
 - Results with a per-second WPM chart and history-derived personal bests.
 - Local test history, settings, and aggregate weak-key statistics.
@@ -51,10 +51,11 @@ Vite prints the local development and preview URLs in the terminal.
 ## Keyboard shortcuts and use
 
 - Select a mode and settings while idle, then type in the prompt to start.
+- In Time mode, apply custom text to practice your own passage; it cycles until the timer ends. Leave it blank to use generated prompts. Choose a preset or enter a duration from 1 to 3,600 seconds.
 - **Tab** while the typing input is focused restarts the test.
 - **Escape** releases focus from the typing input.
 - Backspace removes the last typed character but is not counted as a keystroke. Paste and cursor movement are blocked.
-- For code snippets, type leading spaces as shown; Enter inserts a newline. Tab remains the restart shortcut.
+- For timed code snippets, choose a duration and keep typing; a new snippet appears after each completion until time runs out. Type leading spaces as shown; Enter inserts a newline. Tab remains the restart shortcut.
 
 ## Metrics
 

@@ -187,6 +187,7 @@ describe('weak-key and completion calculations', () => {
       mode: 'words',
       duration: 30,
       wordCount: 10,
+      customText: '',
       settings: { punctuation: true, numbers: true },
     }
 
